@@ -1627,3 +1627,4 @@ Total Loss: 0.25477 || Val Loss: 0.39296
 500 - psnr: 23.402288486291695, ssim: 0.6828697208348695
 Epoch:500/500
 Total Loss: 0.25585 || Val Loss: 0.39436
+Model saved at epoch 500 to ./logs/2025_12_29_05_33_16/weights/model_epoch_500.pth
