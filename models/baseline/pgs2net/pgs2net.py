@@ -364,7 +364,7 @@ class DownSample(nn.Module):
         x = self.proj(x)
         return x
 
-# A Physics-Guided Stage-Aware Spectral Network for Remote Sensing Image Dehazing（PGS²-Net）
+# A Physics-Guided Stage-Aware Frequency Spectral Network for Remote Sensing Image Dehazing（PGS²-Net）
 class PGS2Net(nn.Module):
     def __init__(self, in_chans=3, out_chans=4, patch_size=1,
                  embed_dim=(48, 96, 192, 96, 48), depth=(2, 2, 2, 2, 2)):
@@ -469,5 +469,6 @@ if __name__ == "__main__":
     # # MACs: 21.572 GMac
     # # FLOPs: 43.144 GFLOPs
     # # Params: 2.338 M
+
 
     # FLOPs:42.76 GFLOPS   MACs:21.05 GMACs   Params:2.34 M
