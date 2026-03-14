@@ -70,7 +70,7 @@ MODEL_CLASSES = {
     'SwinIR':            SwinIR,
     'SFAN':              SFAN,
     'SFRDPNet':          SFRDPNet,
-    #    投稿失败的版本
+    #    投稿失败的版本, 写成了专利
     'FourierDehazeNet':  FourierDehazeNet,
 }
 
