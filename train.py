@@ -14,7 +14,7 @@ def parse_args(known=False):
     parser.add_argument('--model', type=str, default='PGS2Net_s',
                         help='train net name')
     parser.add_argument('--resume_training', type=str,
-                        default=r'E:\PythonProject\DehazeLab\model_weights\SateHaze1K\Haze1k_thin\PGS2Net_s.pth',
+                        default=None,
                         help="resume training from last checkpoint")
     parser.add_argument('--dataset_path', type=str,
                         default=r'E:\PythonProject\DehazeLab\data\SateHaze1K\Haze1k_thin',
