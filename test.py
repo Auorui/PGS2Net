@@ -24,13 +24,20 @@ def sliding_window_inference(
     window_size=256,
     stride=128
 ):
+    """
+    input_tensor: [1, C, H, W], range [-1, 1]
+    return: [1, C, H, W]
+    """
     _, C, H, W = input_tensor.shape
     device = input_tensor.device
     flag = None
     if window_size is None or stride is None or (H <= window_size and W <= window_size):
         flag = "Normal inference"
         with torch.no_grad():
-            output = model(input_tensor).clamp_(-1, 1)
+            output = model(input_tensor)
+            if isinstance(output, (tuple, list)):
+                output = output[-1]
+            output = output.clamp_(-1, 1)
     else:
         flag = "Sliding inference"
         output = torch.zeros((1, C, H, W), device=device)
@@ -45,23 +52,27 @@ def sliding_window_inference(
                 patch = input_tensor[:, :, y:y+window_size, x:x+window_size]
 
                 with torch.no_grad():
-                    patch_out = model(patch).clamp_(-1, 1)
+                    patch_out = model(patch)
+                    if isinstance(patch_out, (tuple, list)):
+                        patch_out = patch_out[-1]
+                    patch_out = patch_out.clamp_(-1, 1)
 
                 output[:, :, y:y+window_size, x:x+window_size] += patch_out * window_weight
                 weight[:, :, y:y+window_size, x:x+window_size] += window_weight
 
-        output = output / (weight + 1e-8)  # Prevent division by zero
+        output = output / (weight + 1e-8)  # 防止除 0
     return output, flag
 
 def test(args):
     test_dataset = DehazeDatasetTest(
         args.data_dir,
         args.input_shape,
-        use_resize=False if args.only_index else args.use_resize
+        use_resize=args.use_resize
     )
     test_loader = DataLoader(test_dataset, batch_size=1, num_workers=2, pin_memory=False)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     network = get_dehaze_networks(args.model).to(device)
+
     if args.model != 'DCP':
         network.load_state_dict(
             torch.load(args.resume_training, map_location='cuda:0')
@@ -89,7 +100,9 @@ def test(args):
         )
         m = DehazeMetricV1(output, target)
         psnr_val, ssim_val, lpips_val = m.get_psnr(), m.get_ssim(), m.get_lpips()
-
+        if torch.isnan(torch.tensor(psnr_val)):
+            print(f"Skipping {filename} due to NaN PSNR")
+            continue
         PSNR.update(psnr_val)
         SSIM.update(ssim_val)
         LPIPS.update(lpips_val)
