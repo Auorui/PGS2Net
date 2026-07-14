@@ -94,5 +94,3 @@ if __name__ == "__main__":
     print(f"PSNR: {psnr_v1:.4f}")
     print(f"SSIM: {ssim_v1:.4f}")
     print(f"LPIPS: {lpips_v1:.4f}")
-
-
