@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torchvision
 from torchvision import models
 import numpy as np
+from torch_dct import dct_2d
 from utils.pytorch_ssim import ms_ssim
 
 
@@ -307,9 +308,9 @@ class PhaseLoss(nn.Module):
         pha1 = torch.angle(fre1)
         return self.l1_loss(pha, pha1)
 
-class FrequencyLoss(nn.Module):
+class FFTLoss(nn.Module):
     def __init__(self):
-        super(FrequencyLoss, self).__init__()
+        super(FFTLoss, self).__init__()
         self.l1_loss = nn.L1Loss()
 
     def forward(self, img, img1):
@@ -322,22 +323,33 @@ class FrequencyLoss(nn.Module):
         return self.l1_loss(pha, pha1), self.l1_loss(amp, amp1)
 
 
+class DCTLoss(nn.Module):
+    def __init__(self, norm='ortho'):
+        super(DCTLoss, self).__init__()
+        self.norm = norm
+
+    def forward(self, pred, target):
+        # 对每个通道分别做2D DCT
+        # pred, target shape: [B, C, H, W]
+        pred_dct = dct_2d(pred, norm=self.norm)
+        target_dct = dct_2d(target, norm=self.norm)
+
+        # L1 loss on DCT coefficients
+        loss = nn.functional.l1_loss(pred_dct, target_dct)
+        return loss
+
 class dehaze_criterion(nn.Module):
     def __init__(self):
         super().__init__()
         self.l1 = nn.L1Loss()
-        # self.cr = ContrastLoss_res(ablation=False).cuda()
-        # self.amplitude_loss = AmplitudeLoss()
-        # self.phase_loss = PhaseLoss()
-        self.freq = FrequencyLoss()
+        self.fft = FFTLoss()
+        # self.dct = DCTLoss()
 
     def forward(self, output, target_img, source_img):
         l1_loss = self.l1(output, target_img)
-        # contrast_loss = self.cr(output, target_img, source_img) * 0.1
-        phase_loss, amp_loss = self.freq(output, target_img)
-        # amp_loss = self.amplitude_loss(output, target_img)
-        # phase_loss = self.phase_loss(output, target_img)
+        phase_loss, amp_loss = self.fft(output, target_img)
         freq_loss = 0.02 * (amp_loss + phase_loss)
+        # freq_loss2 = self.dct(output, target_img) * 5
         total_loss = l1_loss + freq_loss
-        # print(l1_loss , contrast_loss , freq_loss)
+        # print(l1_loss, freq_loss)
         return total_loss
