@@ -1,6 +1,5 @@
 # my method
 from .fourierdehazenet import FourierDehazeNet
-from .pgs2net import PGS2Net_s, PGS2Net_b
 # other method
 from .dcp import DCP
 from .dehazenet import DehazeNet
