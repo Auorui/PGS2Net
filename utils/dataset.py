@@ -70,8 +70,8 @@ class DehazeDatasetTest(BaseDataset):
         if self.use_resize:
             source_img = cv2.resize(source_img, self.target_shape, interpolation=cv2.INTER_AREA)
             target_img = cv2.resize(target_img, self.target_shape, interpolation=cv2.INTER_AREA)
-        else:
-            [source_img, target_img] = self.align([source_img, target_img], self.target_shape)
+        # else:
+        #     [source_img, target_img] = self.align([source_img, target_img], self.target_shape)
         return self.hwc2chw(source_img), self.hwc2chw(target_img), img_name
 
 
@@ -121,6 +121,5 @@ if __name__ == "__main__":
     # for i, (gt, hazy) in enumerate(train_loader):
     # 	print(f"Training - Step {i}, GT Shape: {gt.shape}, Hazy Shape: {hazy.shape}")
     show_image_from_dataloader(train_dataset)
-
-    # for j, (gt, hazy) in enumerate(val_loader) :
+    # for j, (gt, hazy) in enumerate(val_loaer) :
     # 	print(f"Validation - Step {j}, GT Shape: {gt.shape}, Hazy Shape: {hazy.shape}")
