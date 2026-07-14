@@ -1,4 +1,5 @@
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import argparse
 import torch
 from models import get_dehaze_networks
@@ -17,7 +18,7 @@ def parse_args(known=False):
                         default=None,
                         help="resume training from last checkpoint")
     parser.add_argument('--dataset_path', type=str,
-                        default=r'E:\PythonProject\DehazeLab\data\SateHaze1K\Haze1k_thin',
+                        default=r'E:\PythonProject\DehazeLab\data\RSHD\thick',
                         help='dataset path')
     parser.add_argument('--seed', type=int, default=11,
                         help='Random seed number, For example: 11, 42, 3407, 114514, 256')
@@ -52,7 +53,6 @@ if __name__ == '__main__':
     redirect_console(os.path.join(timelog_dir, 'out.log'))
     pyzjr.show_config(args=args)
     network = get_dehaze_networks(args.model)
-    # os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_ids
     gpu_ids = [int(id) for id in args.gpu_ids.split(',')]
 
     if torch.cuda.is_available():
