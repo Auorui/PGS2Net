@@ -1,4 +1,5 @@
 from models.baseline import *
+from models.pgs2net import PGS2Net_s, PGS2Net_b
 
 MODEL_CLASSES = {
     'PGS2Net_s':         PGS2Net_s,
