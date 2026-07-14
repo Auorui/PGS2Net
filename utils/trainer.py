@@ -45,6 +45,7 @@ class DeHazeTrainEpoch(object):
                     loss = self.loss_function(outputs, target_img, source_img)
                     loss.backward()
                     self.optimizer.step()
+
                 # self.lr_scheduler.step()  # Placed after the end of each round
                 losses.update(loss.item())
                 pbar.set_postfix(**{'train_loss': losses.avg,
