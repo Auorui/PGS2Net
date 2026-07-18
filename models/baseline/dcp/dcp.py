@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 class DCP(nn.Module):
-    def __init__(self, omega=0.95, t0=0.1, top_percent=0.1, radius=40):
+    def __init__(self, omega=0.95, t0=0.1, top_percent=0.001, radius=40):
         super(DCP, self).__init__()
         self.omega = omega
         self.t0 = t0
@@ -83,33 +83,7 @@ class DCP(nn.Module):
 if __name__=="__main__":
     from pyzjr import AverageMeter, BaseDataset
     from torch.utils.data import DataLoader
-    from utils import DehazeMetricV1
-    import os
-
-    class DehazeDatasetTest(BaseDataset):
-        def __init__(
-                self,
-                root_dir,
-                target_shape,
-                use_resize=False
-        ):
-            super(DehazeDatasetTest, self).__init__()
-            self.use_resize = use_resize
-            self.target_shape = self.to_2tuple(target_shape)
-            self.gt = os.path.join(root_dir, 'GT')
-            self.hazy = os.path.join(root_dir, 'hazy')
-            self.image_name_list = self.SearchFileName(self.gt, ('.png', '.jpg'))
-
-        def __len__(self):
-            return len(self.image_name_list)
-
-        def __getitem__(self, item):
-            self.disable_cv2_multithreading()
-            img_name = self.image_name_list[item]
-            source_img = self.read_image(os.path.join(self.hazy, img_name), to_rgb=True, normalize=True) * 2 - 1
-            target_img = self.read_image(os.path.join(self.gt, img_name), to_rgb=True, normalize=True) * 2 - 1
-            [source_img, target_img] = self.align([source_img, target_img], self.target_shape)
-            return self.hwc2chw(source_img), self.hwc2chw(target_img), img_name
+    from utils import DehazeMetricV1, DehazeDatasetTest
 
     # gt_path = r"E:\PythonProject\DehazeProject\data\RICE_DATASET\test\GT\21.png"
     # hazy_path = r"E:\PythonProject\DehazeProject\data\RICE_DATASET\test\hazy\21.png"
@@ -120,8 +94,8 @@ if __name__=="__main__":
     # hazy_image = cv2.imread(hazy_path)
     # hazy_image = pyzjr.read_image(hazy_path, 'torch', target_shape=(512, 512)).cuda()
     # target_image = pyzjr.read_image(gt_path, 'torch', target_shape=(512, 512)).cuda()
-    data_dir = r'E:\PythonProject\DehazeLab\data\RRSHID\thick\test'
-    test_dataset = DehazeDatasetTest(data_dir, 256)
+    data_dir = r'E:\PythonProject\DehazeLab\data\RSHD\thin\test'
+    test_dataset = DehazeDatasetTest(data_dir, 512)
     test_loader = DataLoader(test_dataset,
                              batch_size=1,
                              num_workers=2,
@@ -132,7 +106,6 @@ if __name__=="__main__":
 
         with torch.no_grad():
             output = network(input)
-            # pyzjr.imwrite(f"dcp_{filename}", output)
             # [-1, 1] to [0, 1]
             m = DehazeMetricV1(output, target)
             psnr_val, ssim_val, lpips_val = m.get_psnr(), m.get_ssim(), m.get_lpips()
@@ -144,33 +117,6 @@ if __name__=="__main__":
         print('Test: [{0}]\t'
               'PSNR: {psnr.val:.05f} ({psnr.avg:.05f})\t'
               'SSIM: {ssim.val:.05f} ({ssim.avg:.05f})\t'
+              'LPIPS: {lpips.val:.04f} ({lpips.avg:.04f})'
               'filename: {filename}'
-              .format(idx + 1, psnr=PSNR, ssim=SSIM, filename=filename))
-    # import torch.nn.functional as F
-    # from pytorch_msssim import ssim
-    #
-    # def calculate_index(output, target):
-    #     # output = output*0.5 + 0.5
-    #     # target = target*0.5 + 0.5
-    #     psnr = 10 * torch.log10(1/F.mse_loss(output, target)).item()
-    #     _, _, H, W = output.size()
-    #     down_ratio = max(1, round(min(H, W) / 256))
-    #     ssim_val = ssim(F.adaptive_avg_pool2d(output, (int(H / down_ratio), int(W / down_ratio))),
-    #                     F.adaptive_avg_pool2d(target, (int(H / down_ratio), int(W / down_ratio))),
-    #                     data_range=1, size_average=False).item()
-    #     return psnr, ssim_val
-    #
-    # import pyzjr
-    # hazy_path = r"E:\PythonProject\DehazeProject\data\RICE_DATASET\test\hazy\781.png"
-    # gt_path   = r"E:\PythonProject\DehazeProject\data\RICE_DATASET\test\GT\781.png"
-    # hazy_image = pyzjr.read_image(hazy_path, 'torch', target_shape=(512, 512)).cuda()
-    # target_image = pyzjr.read_image(gt_path, 'torch', target_shape=(512, 512)).cuda()
-    # dcp = DCP().cuda()
-    # out_image = dcp(hazy_image)
-    # p, s = calculate_index(out_image, target_image)
-    # print(p, s)
-    # pyzjr.imwrite("1.png", out_image)
-
-
-    # 27.51490354537964 0.9374207854270935
-    # 25.32953977584839 0.982807993888855  21
+              .format(idx + 1, psnr=PSNR, ssim=SSIM, lpips=LPIPs, filename=filename))
