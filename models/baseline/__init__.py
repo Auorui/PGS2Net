@@ -2,6 +2,7 @@
 from .fourierdehazenet import FourierDehazeNet
 # other method
 from .dcp import DCP
+from .cap import CAP
 from .dehazenet import DehazeNet
 from .aodnet import AODNet
 from .gcanet import GCANet
