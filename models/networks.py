@@ -6,6 +6,7 @@ MODEL_CLASSES = {
     'PGS2Net_b':         PGS2Net_b,
 
     'DCP':               DCP,
+    'CAP':               CAP,
     'DehazeNet':         DehazeNet,
     'AODNet':            AODNet,
     'GCANet':            GCANet,
