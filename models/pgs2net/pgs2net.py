@@ -16,6 +16,7 @@ class FASM(nn.Module):
           - r0 (低频/高频分界): 跨数据集拟合 ≈ 0.50  (r0 = 0.499 ± 0.017)
           - k  (过渡陡度)     : 跨数据集拟合 ≈ 2.22  (k = 2.06 ± 0.36)
           - alpha (调制强度)   : 可学习, 由训练自适应 (吸收雾浓度差异)
+    改进建议：alpha在低频和高频区域不一致，其实可以各自学习
     """
     def __init__(self, in_channels, out_channels, groups=1,
                  use_rpf=False, act_type='tanh',
