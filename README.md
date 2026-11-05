@@ -47,7 +47,7 @@ The names of supported models are detailed in MODEL_CLASSES within ./models/netw
 | Setting | PSNR↑ | SSIM↑ | LPIPS↓ |
 |---|---:|---:|---:|
 | w/o RPF | 24.9898 ± 0.035 | 0.8879 ± 0.0008 | 0.1509 ± 0.0019 |
-| Encoder, first block | 25.0410 ± 0.032 | 0.8884 ± 0.0007 | 0.1501 ± 0.0007 |
+| Encoder, every block | 25.0410 ± 0.032 | 0.8884 ± 0.0007 | 0.1501 ± 0.0007 |
 | Decoder, first block | 25.0799 ± 0.020 | 0.8884 ± 0.0010 | 0.1530 ± 0.0006 |
 | Random init | 25.1789 ± 0.035 | 0.8894 ± 0.0007 | 0.1502 ± 0.0006 |
 | **Encoder, first block (Ours)** | **25.2958 ± 0.038** | **0.8903 ± 0.0008** | **0.1492 ± 0.0013** |
