@@ -7,7 +7,7 @@ from models.networks import get_dehaze_networks
 from utils import sliding_window_inference, load_image, write_tensor
 
 
-def main(args):
+def predict(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     model = get_dehaze_networks(args.model).to(device)
@@ -44,4 +44,4 @@ if __name__ == '__main__':
     parser.add_argument('--window_size', type=int, default=256)
     parser.add_argument('--stride', type=int, default=128)
     args = parser.parse_args()
-    main(args)
+    predict(args)
