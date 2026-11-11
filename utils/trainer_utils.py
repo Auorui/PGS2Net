@@ -1,8 +1,8 @@
 import torch
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from tqdm import tqdm
 from pyzjr.nn import release_gpu_memory, get_lr, AverageMeter, LossHistory, get_optimizer
-from utils.metric import DehazeMetricV1, DehazeMetricV2
+from utils.metric import DehazeMetricV1
 
 class DeHazeTrainEpoch(object):
     def __init__(self,
@@ -33,7 +33,7 @@ class DeHazeTrainEpoch(object):
             for batch in train_loader:
                 source_img, target_img = batch[0].to(self.device).float(), \
                                          batch[1].to(self.device).float()
-                with autocast(enabled=self.scaler is not None):
+                with autocast(device_type='cuda', enabled=self.scaler is not None):
                     outputs = self.model(source_img)
                 self.optimizer.zero_grad()
                 if self.scaler is not None:
@@ -47,7 +47,7 @@ class DeHazeTrainEpoch(object):
                     self.optimizer.step()
 
                 # self.lr_scheduler.step()  # Placed after the end of each round
-                losses.update(loss.item())
+                losses.update(loss.item(), n=source_img.size(0))
                 pbar.set_postfix(**{'train_loss': losses.avg,
                                     'lr': get_lr(self.optimizer)})
                 pbar.update(1)
@@ -69,7 +69,7 @@ class DeHazeTrainEpoch(object):
                     psnr_val, ssim_val = metric_v1.get_psnr(), metric_v1.get_ssim()
                 PSNR.update(psnr_val, source_img.size(0))
                 SSIM.update(ssim_val, source_img.size(0))
-                losses.update(loss.item())
+                losses.update(loss.item(), n=source_img.size(0))
                 pbar.set_postfix(**{'psnr': PSNR.avg})
                 pbar.update(1)
             print(f"{epoch} - psnr: {PSNR.avg}, ssim: {SSIM.avg}")
