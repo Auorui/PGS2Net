@@ -70,7 +70,7 @@ def test(args):
             write_tensor(output, save_path)
             print(f"Save to {save_path}")
 
-    print(f"PSNR & SSIM & LPIPS: {PSNR.avg} & {SSIM.avg} & {LPIPS.avg}")
+    print(f"\nPSNR & SSIM & LPIPS: {PSNR.avg} & {SSIM.avg} & {LPIPS.avg}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
