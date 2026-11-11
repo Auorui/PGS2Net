@@ -77,7 +77,7 @@ def random_add_cloud_folder(
 if __name__=="__main__":
     # background_path = r'E:\PythonProject\img_processing_techniques_main\filter_image\LEVIR_DEHAZE\thick\GT'
     save_path = r'./results'
-    overlay_cloudmist_path = r'E:\PythonProject\dehazeprojects/data\cloud262\cloud_shape_512'
+    overlay_cloudmist_path = r'E:\PythonProject\dehazeprojects/data/cloud_shape_512'
     # random_addfog_folder(background_path, save_path, overlay_path=overlay_cloudmist_path)
     background_path = r'E:\PythonProject\DehazeLabs\utils\OIP-C.png'
     background = cv2.imread(background_path)
