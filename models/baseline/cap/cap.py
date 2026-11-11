@@ -183,8 +183,8 @@ class CAP(nn.Module):
         B, C, H, W = rgb.shape
 
         # 展平
-        depth_flat = depth.view(B, -1)
-        rgb_flat = rgb.view(B, C, -1)
+        depth_flat = depth.reshape(B, -1)
+        rgb_flat = rgb.reshape(B, C, -1)
 
         # 计算最亮像素的数量 (0.1%)
         n_bright = max(1, int(self.top_percent * H * W))
