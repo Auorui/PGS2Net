@@ -10,8 +10,6 @@ The dehazing dataset specific format is as follows:
 Use ITS as the training set and SOTS indoor as the test set.
 """
 import os
-import cv2
-import numpy as np
 from pyzjr.data import BaseDataset
 
 class DehazeDataset(BaseDataset):
@@ -27,37 +25,32 @@ class DehazeDataset(BaseDataset):
         data_dir = os.path.join(root_dir, 'train' if is_train else 'test')
         self.gt = os.path.join(data_dir, 'GT')
         self.hazy = os.path.join(data_dir, 'hazy')
-        self.image_name_list = self.SearchFileName(self.gt, ('.png', '.jpg'))
+        self.image_name_list = self.get_file_path(self.gt, ('.png', '.jpg'))
+        self.disable_cv2_multithreading()
 
     def __len__(self):
         return len(self.image_name_list)
 
     def __getitem__(self, item):
-        self.disable_cv2_multithreading()
         img_name = self.image_name_list[item]
         # normalize to [-1, 1]
         source_img = self.read_image(os.path.join(self.hazy, img_name), to_rgb=True, normalize=True) * 2 - 1
         target_img = self.read_image(os.path.join(self.gt, img_name), to_rgb=True, normalize=True) * 2 - 1
         if self.mode:
-            [source_img, target_img] = self.augment([source_img, target_img], target_shape=self.target_shape)
+            [source_img, target_img] = self.augment(
+                [source_img, target_img], target_shape=self.target_shape, is_labels=[False, False])
         else:
-            [source_img, target_img] = self.align([source_img, target_img], self.target_shape)
+            [source_img, target_img] = self.align(
+                [source_img, target_img], target_shape=self.target_shape, is_labels=[False, False])
         return self.hwc2chw(source_img), self.hwc2chw(target_img)
 
 
 class DehazeDatasetTest(BaseDataset):
-    def __init__(
-        self,
-        root_dir,
-        target_shape,
-        use_resize=False
-    ):
+    def __init__(self, root_dir):
         super(DehazeDatasetTest, self).__init__()
-        self.use_resize = use_resize
-        self.target_shape = self.to_2tuple(target_shape)
         self.gt = os.path.join(root_dir, 'GT')
         self.hazy = os.path.join(root_dir, 'hazy')
-        self.image_name_list = self.SearchFileName(self.gt, ('.png', '.jpg'))
+        self.image_name_list = self.get_file_path(self.gt, ('.png', '.jpg'))
 
     def __len__(self):
         return len(self.image_name_list)
@@ -67,24 +60,44 @@ class DehazeDatasetTest(BaseDataset):
         img_name = self.image_name_list[item]
         source_img = self.read_image(os.path.join(self.hazy, img_name), to_rgb=True, normalize=True) * 2 - 1
         target_img = self.read_image(os.path.join(self.gt, img_name), to_rgb=True, normalize=True) * 2 - 1
-        if self.use_resize:
-            source_img = cv2.resize(source_img, self.target_shape, interpolation=cv2.INTER_AREA)
-            target_img = cv2.resize(target_img, self.target_shape, interpolation=cv2.INTER_AREA)
-        # else:
-        #     [source_img, target_img] = self.align([source_img, target_img], self.target_shape)
         return self.hwc2chw(source_img), self.hwc2chw(target_img), img_name
 
+if __name__ == "__main__":
+    from torch.utils.data import DataLoader
+    data_path = r'E:\PythonProject\DehazeLab\data\RSHD\thick'
+    train_dataset= DehazeDataset(
+        root_dir=data_path,
+        target_shape=(256, 256),
+        is_train=True,
+    )
+    val_dataset=DehazeDataset(
+        root_dir=data_path,
+        target_shape=256,
+        is_train=False,
+    )
 
-def show_image_from_dataloader(dataset, end_k=27):
-    loader = DataLoader(
-        dataset,
-        batch_size=1,
-        shuffle=False,
+    train_loader=DataLoader(
+        train_dataset,
+        batch_size=2,
+        shuffle=True,
         num_workers=2,
         pin_memory=True,
         drop_last=False
     )
-    for i, (hazy, gt) in enumerate(loader):
+
+    val_loader=DataLoader(
+        val_dataset,
+        batch_size=2,
+        shuffle=False,
+        num_workers=2,
+        pin_memory=False,
+        drop_last=False
+    )
+
+    import cv2
+    import numpy as np
+
+    for i, (hazy, gt) in enumerate(val_loader):
         gt_img = gt[0].numpy()
         hazy_img = hazy[0].numpy()
         gt_img = np.transpose(gt_img, axes=[1, 2, 0])
@@ -94,32 +107,6 @@ def show_image_from_dataloader(dataset, end_k=27):
         stack_img = np.hstack([gt_img, hazy_img])
         cv2.imshow('GT & Hazy', stack_img)
         k=cv2.waitKey(0)
-        if k == end_k: # ESC exit
+        if k == 27:   # ESC exit
             cv2.destroyAllWindows()
             break
-
-if __name__ == "__main__":
-    from torch.utils.data import DataLoader
-    from pyzjr.data.loaders import TrainDataloader, EvalDataloader
-
-    data_path=r'E:\PythonProject\DehazeLab\data\RSID'
-    train_dataset=DehazeDataset(
-        root_dir=data_path,
-        target_shape=256,
-    )
-    train_loader=TrainDataloader(train_dataset, batch_size=4)
-
-    # 验证阶段，可以用类似的代码从验证集读取
-    val_dataset=DehazeDataset(
-        root_dir=data_path,
-        target_shape=256,
-        is_train=False,
-    )
-    val_loader=EvalDataloader(val_dataset, batch_size=4)
-
-    # 训练阶段，使用训练集
-    # for i, (gt, hazy) in enumerate(train_loader):
-    # 	print(f"Training - Step {i}, GT Shape: {gt.shape}, Hazy Shape: {hazy.shape}")
-    show_image_from_dataloader(train_dataset)
-    # for j, (gt, hazy) in enumerate(val_loaer) :
-    # 	print(f"Validation - Step {j}, GT Shape: {gt.shape}, Hazy Shape: {hazy.shape}")
