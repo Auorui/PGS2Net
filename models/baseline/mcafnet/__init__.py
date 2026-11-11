@@ -1,1 +1,0 @@
-from .mcafnet import MCAFNet_s, MCAFNet_l

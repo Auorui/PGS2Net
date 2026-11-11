@@ -1,1 +1,0 @@
-from .fctfnet import FCTFNet

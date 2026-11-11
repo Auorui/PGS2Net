@@ -1,1 +1,0 @@
-from .sfan import SFAN

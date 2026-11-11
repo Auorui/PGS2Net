@@ -1,1 +1,0 @@
-from .scanet import SCANet

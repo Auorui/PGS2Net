@@ -1,1 +1,0 @@
-from .swinir import SwinIR
