@@ -263,17 +263,17 @@ class ContrastLoss_res(nn.Module):
     def __init__(self, ablation: object = False):
 
         super(ContrastLoss_res, self).__init__()
-        self.vgg = Resnet152().cuda()
+        self.res = Resnet152().cuda()
         self.l1 = nn.L1Loss()
         self.weights = [1.0 / 16, 1.0 / 8, 1.0 / 4, 1.0]
         self.ab = ablation
 
     def forward(self, a, p, n):
-        a_vgg, p_vgg, n_vgg = self.vgg(a), self.vgg(p), self.vgg(n)
+        a_res, p_res, n_res = self.res(a), self.res(p), self.res(n)
         loss = 0
         d_ap, d_an = 0, 0
-        for i in range(len(a_vgg)):
-            a, p, n = a_vgg[i], p_vgg[i], n_vgg[i]
+        for i in range(len(a_res)):
+            a, p, n = a_res[i], p_res[i], n_res[i]
             d_ap = self.l1(a, p.detach())
             if not self.ab:
                 d_an = self.l1(a, n.detach())
@@ -299,7 +299,7 @@ class AmplitudeLoss(nn.Module):
 class PhaseLoss(nn.Module):
     def __init__(self):
         super(PhaseLoss, self).__init__()
-        self.l1_loss = nn.L1Loss()
+        self.l1_loss = nn.L1Loss(reduction='mean')
 
     def forward(self, img, img1):
         fre = torch.fft.rfft2(img, norm='backward')
@@ -311,7 +311,7 @@ class PhaseLoss(nn.Module):
 class FFTLoss(nn.Module):
     def __init__(self):
         super(FFTLoss, self).__init__()
-        self.l1_loss = nn.L1Loss()
+        self.l1_loss = nn.L1Loss(reduction='mean')
 
     def forward(self, img, img1):
         fre = torch.fft.rfft2(img, norm='backward')
@@ -350,6 +350,7 @@ class dehaze_criterion(nn.Module):
         phase_loss, amp_loss = self.fft(output, target_img)
         freq_loss = 0.02 * (amp_loss + phase_loss)
         # freq_loss2 = self.dct(output, target_img) * 5
+        # contrast = ContrastLoss_res(output, target_img, source_img) * 0.1
         total_loss = l1_loss + freq_loss
         # print(l1_loss, freq_loss)
         return total_loss
