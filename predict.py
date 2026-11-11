@@ -113,7 +113,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='PGS2Net_b')
-    parser.add_argument('--weight', type=str, default=r'model_weights\RRSHID\thick\PGS2Net_b.pth')
+    parser.add_argument('--weight', type=str, default=r'model_weights\RSHD\thick\PGS2Net_b.pth')
     parser.add_argument('--input_dir', type=str, default=r'E:\PythonProject\DehazeLab\data\RSHD\thick\test\hazy',
                         help='folder of real hazy images')
     parser.add_argument('--result_dir', type=str, default=r'./work_dir',
