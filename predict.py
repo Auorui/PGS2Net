@@ -112,11 +112,11 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='FFANet')
-    parser.add_argument('--weight', type=str, default=r'model_weights\RSHD\thick\FFANet.pth')
-    parser.add_argument('--input_dir', type=str, default=r'E:\PythonProject\CDLab\data\LEVIR_CD_256_Hazy\test\B',
+    parser.add_argument('--model', type=str, default='PGS2Net_b')
+    parser.add_argument('--weight', type=str, default=r'model_weights\RRSHID\thick\PGS2Net_b.pth')
+    parser.add_argument('--input_dir', type=str, default=r'E:\PythonProject\DehazeLab\data\RSHD\thick\test\hazy',
                         help='folder of real hazy images')
-    parser.add_argument('--result_dir', type=str, default=r'E:\PythonProject\CDLab\data\LEVIR_CD_256_FFANet\test',
+    parser.add_argument('--result_dir', type=str, default=r'./work_dir',
                         help='folder to save dehazed images')
 
     parser.add_argument('--window_size', type=int, default=256)
