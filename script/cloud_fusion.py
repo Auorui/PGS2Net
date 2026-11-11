@@ -6,7 +6,7 @@ import numpy as np
 
 def random_add_cloud(
         background,
-        overlay_path=r"E:\PythonProject\img_processing_techniques_main\filter_image\cloud_512_thin",
+        overlay_path=None,
         a=0.75, b=1.2,
         sigma_s=0.15,
         sigma_v=0.85,
@@ -52,7 +52,7 @@ def random_add_cloud(
 def random_add_cloud_folder(
         background_path,
         save_path=r'./results',
-        overlay_path=r"E:\PythonProject\img_processing_techniques_main\filter_image\cloud_512_thin",
+        overlay_path=None,
         a=0.86,
         b=1.3,
         sigma_s=0.15,
