@@ -11,7 +11,7 @@ def predict(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     model = get_dehaze_networks(args.model).to(device)
-    if args.model != 'DCP':
+    if args.model not in ('DCP', 'CAP'):
         model.load_state_dict(torch.load(args.weight, map_location=device))
     model.eval()
 
