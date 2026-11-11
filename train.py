@@ -2,12 +2,12 @@ import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import argparse
 import torch
-from models import get_dehaze_networks
 import pyzjr
-from pyzjr.nn import release_gpu_memory, get_lr, AverageMeter, LossHistory, get_optimizer
-from pyzjr.visualize.printf import redirect_console
+from pyzjr.nn import release_gpu_memory, get_lr, AverageMeter, LossHistory, get_optimizer, load_model_weights
+from pyzjr.utils import redirect_console
 from pyzjr.data import loss_weights_dirs, TrainDataloader, EvalDataloader
 from utils import dehaze_criterion, GradualWarmupScheduler, DehazeDataset, DeHazeTrainEpoch
+from models import get_dehaze_networks
 
 
 def parse_args(known=False):
@@ -26,7 +26,7 @@ def parse_args(known=False):
                         help='Training epochs')
     parser.add_argument('--input_shape', default=[256, 256],
                         help='input image shape')
-    parser.add_argument('--batch_size', type=int, default=2,
+    parser.add_argument('--batch_size', type=int, default=8,
                         help='batch size 2 4 8, if there is a memory overflow, try changing it to 1.'
                              'If there are any further questions, please refer to this article: https://blog.csdn.net/m0_62919535/article/details/132725967')
     parser.add_argument('--log_dir', type=str, default=r'./logs',
@@ -49,7 +49,7 @@ def parse_args(known=False):
 if __name__ == '__main__':
     args = parse_args()
     pyzjr.SeedEvery(args.seed)
-    loss_log_dir, save_model_dir, timelog_dir = loss_weights_dirs(args.log_dir)
+    loss_log_dir, save_model_dir, timelog_dir = loss_weights_dirs(os.path.join(args.log_dir, args.model))
     redirect_console(os.path.join(timelog_dir, 'out.log'))
     pyzjr.show_config(args=args)
     network = get_dehaze_networks(args.model)
@@ -61,21 +61,10 @@ if __name__ == '__main__':
         device = torch.device('cpu')
     print(f"使用设备: {device}")
     network = network.to(device)
-    if len(gpu_ids) > 1 and torch.cuda.is_available():
-        print(f"使用多卡训练: GPU {gpu_ids}")
-        network = torch.nn.DataParallel(network, device_ids=gpu_ids)
-    else:
-        print(f"使用单卡训练: {device}")
+
     if args.resume_training is not None:
         print(f"权重 {args.resume_training} 加载到 {args.model}")
-        if torch.cuda.is_available():
-            checkpoint = torch.load(args.resume_training, map_location=device, weights_only=True)
-        else:
-            checkpoint = torch.load(args.resume_training, map_location='cpu', weights_only=True)
-        if isinstance(network, torch.nn.DataParallel):
-            network.module.load_state_dict(checkpoint)
-        else:
-            network.load_state_dict(checkpoint)
+        network = load_model_weights(network, args.resume_training, map_location=device)
     else:
         print(f"初始训练 {args.model}")
 
@@ -103,7 +92,6 @@ if __name__ == '__main__':
     scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-6)
     lr_scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=warmup_epochs,
                                           after_scheduler=scheduler_cosine)
-
     Defogging = DeHazeTrainEpoch(
         network, args.epochs, optimizer, criterion, use_amp=args.amp
     )
@@ -123,5 +111,5 @@ if __name__ == '__main__':
             metric=psnr,
             epoch=epoch,
             total_epochs=args.epochs,
-            save_period=250
+            save_period=200
         )
