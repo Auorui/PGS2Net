@@ -16,7 +16,7 @@ def test(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     network = get_dehaze_networks(args.model).to(device)
-    if args.model != 'DCP':
+    if args.model not in ('DCP', 'CAP'):
         network.load_state_dict(torch.load(args.weight, map_location=device))
     network.eval()
 
