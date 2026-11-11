@@ -79,7 +79,7 @@ if __name__=="__main__":
     save_path = r'./results'
     overlay_cloudmist_path = r'E:\PythonProject\dehazeprojects/data/cloud_shape_512'
     # random_addfog_folder(background_path, save_path, overlay_path=overlay_cloudmist_path)
-    background_path = r'E:\PythonProject\DehazeLabs\utils\OIP-C.png'
+    background_path = r'E:\PythonProject\DehazeLab\OIP-C.png'
     background = cv2.imread(background_path)
     fused_image = random_add_cloud(background, layers=2, a=0.88, b=1.3)
     cv2.imshow('Fused Image', fused_image)
