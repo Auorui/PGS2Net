@@ -1,4 +1,5 @@
 from models.baseline import *
+from models.prior import *
 from models.pgs2net import PGS2Net_s, PGS2Net_b
 
 
@@ -9,6 +10,8 @@ MODEL_CLASSES = {
 
     'DCP':                 DCP,                    # TPAMI 2010
     'CAP':                 CAP,                    # TIP 2015
+    'IHDCP':               IHDCP,                  # TIP 2026
+
     'DehazeNet':           DehazeNet,              # TIP 2016
     'AODNet':              AODNet,                 # ICCV 2017
     'GCANet':              GCANet,                 # WACV 2019
