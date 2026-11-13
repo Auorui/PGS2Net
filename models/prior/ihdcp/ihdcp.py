@@ -1,3 +1,7 @@
+# IHDCP: Single Image Dehazing Using Inverted Haze Density Correction Prior
+# TIP 2026
+# https://github.com/TaoLi-TL/IHDCP
+# https://blog.csdn.net/m0_62919535/article/details/170742272
 import math
 import os
 from pathlib import Path
