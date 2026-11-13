@@ -1,9 +1,7 @@
 # my method
 from .fourierdehazenet import FourierDehazeNet
 # other method
-# 2010-2019
-from .dcp import DCP
-from .cap import CAP
+# 2016-2019
 from .dehazenet import DehazeNet
 from .aodnet import AODNet
 from .gcanet import GCANet
