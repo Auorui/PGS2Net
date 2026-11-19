@@ -98,7 +98,7 @@ def random_clouds_fuse(
             overlay = np.flip(overlay, 1)
         # else:
         #     overlay = pyzjr.random_rot90(overlay)
-        fused_image = pyzjr.OverlayPng(fused_image, overlay, alpha_gain=rand_float)
+        fused_image = pyzjr.overlay_with_alpha(fused_image, overlay, alpha_gain=rand_float)
         print(f"Use transparency gain {rand_float:.2f} combined {os.path.basename(rand_path)} with mode: {correction_mode}")
     return fused_image
 
