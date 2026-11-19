@@ -1,4 +1,4 @@
 ﻿torch==2.8.0+cu126
 torchvision==0.23.0+cu126
-pyzjr==1.4.23
+pyzjr==1.4.24
 timm==1.0.22
