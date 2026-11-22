@@ -1,5 +1,7 @@
 # PGS²Net
 
+Code implementation of the **A Physics-Guided Stage-Aware Frequency Spectral Network for Remote Sensing Image Dehazing**
+
 ## Prerequisites
 ```bash
 pip install -r requirements.txt
