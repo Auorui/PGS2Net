@@ -1,28 +1,3 @@
-"""PGS2Net: Physics-Guided Stage-Aware Frequency Spectral Network.
-
-This module implements the restoration network described in the PGS2Net paper.
-The architecture combines local spatial encoding with global spectral modeling
-for remote-sensing image dehazing.
-
-Main components
----------------
-FASM
-    Frequency-Adaptive Spectral Modulation, consisting of a physics-guided
-    Radial Prior Filter (RPF) and Group-wise Frequency Attention (GFA).
-CPA
-    Cloud Perception Attention for spatially non-uniform cloud/haze responses.
-DPFM
-    Dual-Path Feature Mixer that fuses local spatial and global spectral paths.
-SMFN
-    Serial Multi-Scale Convolutional Feed-forward Network.
-SSIB
-    Spectral-Spatial Interaction Block used throughout the encoder-decoder.
-
-Notes
------
-The training path uses ``torch_dct``, and the inference path automatically employs the cached ``DCT2D``.
-"""
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -35,11 +10,8 @@ class FASM(nn.Module):
 
     FASM contains two complementary operations:
 
-    1. Radial Prior Filter (RPF): applies a physics-guided radial mask in the
-       DCT domain to suppress haze-dominated low-frequency components and
-       enhance structure-relevant higher-frequency components.
-    2. Group-wise Frequency Attention (GFA): dynamically aggregates grouped
-       spectral responses according to the current input feature.
+        1. Radial Prior Filter (RPF)
+        2. Group-wise Frequency Attention (GFA)
 
     The radial modulation is defined as
 
@@ -48,32 +20,30 @@ class FASM(nn.Module):
     where ``r0`` is the low/high-frequency crossover radius, ``k`` controls
     transition steepness, and ``alpha`` controls modulation strength. The
     default values follow the cross-dataset spectral fitting reported in the
-    paper: ``k=2.22`` and ``r0=0.50``.
+    paper: ``k=2.21`` and ``r0=0.50``.
 
-    Parameters
-    ----------
-    in_channels : int
-        Number of input feature channels.
-    out_channels : int
-        Number of output feature channels. In PGS2Net this equals
-        ``in_channels`` so that the spectral residual can be added directly.
-    groups : int, default=1
-        Number of frequency-attention groups.
-    use_rpf : bool, default=False
-        Whether to apply the physics-guided radial prior.
-    act_type : {"tanh", "sigmoid", "linear", "piecewise"}
-        Shape function used by the radial prior.
-    learn_alpha, learn_k, learn_r0 : bool
-        Control whether the corresponding RPF parameters are trainable.
+    Args:
+        in_channels (int): Number of input feature channels.
+        out_channels (int): Number of output feature channels. In PGS2Net this
+            equals ``in_channels`` so that the spectral residual can be added directly.
+        groups (int, optional): Number of frequency-attention groups. Default: 1.
+        use_rpf (bool, optional): Whether to apply the physics-guided radial prior. Default: False.
+        act_type (str, optional): Shape function used by the radial prior.
+            Options: {"tanh", "sigmoid", "linear", "piecewise"}. Default: "tanh".
+        learn_alpha (bool, optional): Whether the alpha parameter is trainable. Default: True.
+        learn_k (bool, optional): Whether the k parameter is trainable. Default: True.
+        learn_r0 (bool, optional): Whether the r0 parameter is trainable. Default: True.
+        K_INIT (float, optional): Initial value for k. Default: 2.21.
+        A_INIT (float, optional): Initial value for alpha. Default: 0.5.
+        R0_INIT (float, optional): Initial value for r0. Default: 0.5.
     """
     def __init__(self, in_channels, out_channels, groups=1, use_rpf=False, act_type='tanh',
-                 learn_alpha=True, learn_k=True, learn_r0=True, K_INIT=2.22, A_INIT=0.5, R0_INIT=0.5):
+                 learn_alpha=True, learn_k=True, learn_r0=True, K_INIT=2.21, A_INIT=0.5, R0_INIT=0.5):
         super().__init__()
         self.groups = groups
         self.use_rpf = use_rpf
         self.act_type = act_type
         if use_rpf:
-            # Independent switches support the parameter-learning ablations.
             self.alpha = nn.Parameter(torch.tensor(float(A_INIT)),  requires_grad=learn_alpha)
             self.k     = nn.Parameter(torch.tensor(float(K_INIT)),  requires_grad=learn_k)
             self.r0    = nn.Parameter(torch.tensor(float(R0_INIT)), requires_grad=learn_r0)
@@ -95,8 +65,6 @@ class FASM(nn.Module):
             yy = torch.arange(h, device=device, dtype=dtype).view(-1, 1)
             xx = torch.arange(w, device=device, dtype=dtype).view(1, -1)
             max_d = ((h - 1) ** 2 + (w - 1) ** 2) ** 0.5
-            # DCT places the DC component at the upper-left corner; no shift is
-            # required before computing the distance to (0, 0).
             r = torch.sqrt(xx ** 2 + yy ** 2) / (max_d + 1e-8)
             self._cached[key] = r
         return self._cached[key]
@@ -126,70 +94,12 @@ class FASM(nn.Module):
         M = torch.exp(-self.alpha * self._shape_fn(r, k, r0))
         return M.unsqueeze(0).unsqueeze(0)  # 1 x 1 x H x W
 
-    # -------------------------------------------------------------------------
-    # Optional asymmetric-strength RPF (research note; intentionally disabled)
-    # -------------------------------------------------------------------------
-    # The data simulation and radial spectral statistics reveal a consistent
-    # sign pattern: haze amplifies low-frequency energy and attenuates
-    # high-frequency energy in the DCT domain. The fitted tanh profile captures
-    # the crossover location and the monotonic transition between these two
-    # regions. However, the magnitudes of low-frequency amplification and
-    # high-frequency attenuation are not necessarily identical.
-    #
-    # The active formulation above uses one learnable alpha:
-    #
-    #     M(r) = exp(-alpha * phi(r)).
-    #
-    # This imposes the same modulation-strength parameter on both sides of r0.
-    # A possible extension is to introduce two independently learnable values:
-    #
-    #     alpha_low  : strength of inverse compensation for r <= r0,
-    #                  i.e., suppression of haze-amplified low frequencies;
-    #     alpha_high : strength of inverse compensation for r > r0,
-    #                  i.e., enhancement of haze-attenuated high frequencies.
-    #
-    # The corresponding piecewise modulation can be written as
-    #
-    #     alpha(r) = alpha_low,   r <= r0
-    #                alpha_high,  r >  r0
-    #     M(r) = exp(-alpha(r) * phi(r)).
-    #
-    # If alpha_low and alpha_high are initialized to the same value, this
-    # extension initially reproduces the current single-alpha formulation and
-    # then allows the two compensation strengths to adapt independently.
-    # 该版本用于表达低频与高频退化幅度可能不对称，目前未启用。
-    #
-    # Example implementation (requires retraining and a new ablation study):
-    #
-    # In __init__:
-    #     self.alpha_low = nn.Parameter(
-    #         torch.tensor(float(A_INIT)), requires_grad=learn_alpha
-    #     )
-    #     self.alpha_high = nn.Parameter(
-    #         torch.tensor(float(A_INIT)), requires_grad=learn_alpha
-    #     )
-    #
-    # Alternative radial modulation:
-    #     def radial_modulation_asymmetric(self, x_dct):
-    #         h, w = x_dct.shape[-2], x_dct.shape[-1]
-    #         r = self._radial_grid(h, w, x_dct.device, x_dct.dtype)
-    #         r0 = torch.clamp(self.r0, 0.05, 0.7)
-    #         k = torch.clamp(self.k, 0.1, 50.0)
-    #         phi = self._shape_fn(r, k, r0)
-    #         alpha_r = torch.where(r <= r0, self.alpha_low, self.alpha_high)
-    #         M = torch.exp(-alpha_r * phi)
-    #         return M.unsqueeze(0).unsqueeze(0)
-    #
-    # This block remains commented out because enabling it changes the model
-    # parameters and checkpoint structure. The submitted paper and released
-    # results continue to use the single-alpha RPF defined above.
-
     def forward(self, x):
-        """Apply DCT-domain prior modulation and adaptive group aggregation."""
         B, C, H, W = x.size()
         # 训练阶段保持原始 torch_dct 路径；eval/inference 阶段自动使用预计算基矩阵的 DCT2D。
         # 该切换不引入任何参数，因此与已有 checkpoint 的 state_dict 完全兼容。
-        use_efficient_dct = not self.training
+        # use_efficient_dct = not self.training
+        use_efficient_dct = False
         if use_efficient_dct:
             dct_feat = DCT2D.dct_2d(x, norm='ortho')
         else:
@@ -198,7 +108,6 @@ class FASM(nn.Module):
         if self.use_rpf:
             dct_feat = dct_feat * self.radial_modulation(dct_feat)
 
-        # Enhance correlations between neighboring DCT coefficients.
         dct_dyn = self.fpe(dct_feat) + dct_feat
         dy_weight = self.weight(dct_dyn)                        # (B, g, H, W)
         y = self.fdc(dct_dyn).view(B, self.groups, -1, H, W)    # (B, g, Cout/g, H, W)
@@ -372,7 +281,6 @@ class Mixer(nn.Module):
         )
 
     def forward(self, x):
-        """Fuse local spatial and global spectral representations."""
         x = self.conv_init(x)
         x = list(torch.split(x, self.dim, dim=1))
         x_local = self.mixer_local(x[0])
@@ -387,12 +295,7 @@ class Mixer(nn.Module):
 class SMFN(nn.Module):
     """Serial Multi-Scale Convolutional Feed-forward Network.
 
-     The receptive field is progressively enlarged using serial depthwise
-     convolutions with kernel sizes 3 x 3, 5 x 5, and 7 x 7. Point-wise
-     projections expand and restore the channel dimension, while BatchNorm and
-     GELU provide normalization and nonlinear transformation.
-
-     This serial arrangement corresponds to Eq. (12) in the paper and differs
+     This serial arrangement corresponds to Eq. (15) in the paper and differs
      from conventional parallel multi-scale fusion.
      """
     def __init__(self, dim, expansion_ratio=4):
@@ -421,7 +324,6 @@ class SMFN(nn.Module):
         self.residual_scale = nn.Parameter(torch.tensor(1.0))
 
     def forward(self, x):
-        """Apply serial multi-scale refinement with a learnable residual scale."""
         identity = x
         x_processed = self.multiscale_conv(x)
         output = self.residual_scale * identity + x_processed
@@ -430,19 +332,7 @@ class SMFN(nn.Module):
 
 class SSIB(nn.Module):
     """Spectral-Spatial Interaction Block.
-
-    Each SSIB contains a DPFM followed by an SMFN. Batch normalization is
-    applied before each submodule, and learnable zero-initialized residual
-    scales (``beta`` and ``gamma``) stabilize optimization.
-
-    Parameters
-    ----------
-    dim : int
-        Feature width of the current stage.
-    groups : int
-        Number of groups used by GFA in the spectral branch.
-    use_rpf : bool
-        Whether this block activates the physics-guided radial prior.
+    Each SSIB contains a DPFM followed by an SMFN.
     """
     def __init__(self, dim, groups, use_rpf, act_type='tanh',
                  learn_alpha=True, learn_k=True, learn_r0=True):
@@ -460,7 +350,6 @@ class SSIB(nn.Module):
         self.gamma = nn.Parameter(torch.zeros((1, dim, 1, 1)), requires_grad=True)
 
     def forward(self, x):
-        """Apply spectral-spatial mixing and multi-scale feed-forward refinement."""
         copy = x
         x = self.norm1(x)
         x = self.mixer(x)
@@ -585,33 +474,21 @@ class DownSample(nn.Module):
 class PGS2Net(nn.Module):
     """Physics-Guided Stage-Aware Frequency Spectral Network. (PGS²Net)
 
-    PGS2Net is a symmetric encoder-decoder restoration network constructed from
-    SSIBs. The encoder progressively injects the radial spectral prior, while
-    the decoder reconstructs spatial details without RPF constraints.
-
-    The output head predicts one multiplicative map ``K`` and a three-channel
-    additive map ``B``. The restored image is computed as
-
-        I_out = K * I_in - B + I_in.
-
-    Parameters
-    ----------
-    in_chans : int, default=3
-        Number of input image channels.
-    out_chans : int, default=4
-        Output channels of the restoration head: one for ``K`` and three for
-        ``B``.
-    patch_size : int, default=1
-        Initial embedding stride.
-    embed_dim : sequence of int
-        Channel widths for the three encoder and two decoder stages.
-    depth : sequence of int
-        Number of SSIBs in each stage.
-    use_rpf : sequence of bool
-        RPF placement switches for the three encoder stages.
+    Args:
+        in_chans: Number of input image channels. int, default=3
+        out_chans: Output channels of the restoration head: one for ``K`` and three for ``B``. int, default=4
+        patch_size: Initial embedding stride.
+        embed_dim: Channel widths for the three encoder and two decoder stages.
+        depth: Number of SSIBs in each stage.
+        use_rpf: RPF placement switches for the three encoder stages.
+        use_rpf (tuple, optional): PF placement switches for the three encoder stages. Default: (True, True, True).
+        act_type (str, optional): Shape function used by the radial prior. Default: "tanh".
+        learn_alpha (bool, optional): Whether alpha is trainable. Default: True.
+        learn_k (bool, optional): Whether k is trainable. Default: True.
+        learn_r0 (bool, optional): Whether r0 is trainable. Default: True.
     """
     def __init__(self, in_chans=3, out_chans=4, patch_size=1,
-                 embed_dim=(48, 96, 192, 96, 48), depth=(2, 2, 2, 2, 2),
+                 embed_dim=(48, 96, 192, 96, 48), depth=(2, 2, 4, 2, 2),
                  use_rpf=(True, True, True), act_type='tanh',
                  learn_alpha=True, learn_k=True, learn_r0=True):
         super(PGS2Net, self).__init__()
@@ -650,29 +527,28 @@ class PGS2Net(nn.Module):
         return x
 
     def forward_features(self, x):
-        """Run the symmetric encoder-decoder and predict ``K``/``B`` features."""
         x = self.patch_embed(x)
 
-        # Encoder stage 1: full-resolution representation.
+        # Encoder stage 1
         x = self.layer1(x)
         copy1 = x
 
-        # Encoder stage 2: half-resolution representation.
+        # Encoder stage 2
         x = self.downsample1(x)
         x = self.layer2(x)
         copy2 = x
 
-        # Bottleneck stage: quarter-resolution global representation.
+        # Bottleneck stage 3
         x = self.downsample2(x)
         x = self.layer3(x)
         x = self.upsample3(x)
 
-        # Decoder stage 1 with the corresponding encoder skip feature.
+        # Decoder stage 1
         x = self.skip2(torch.cat([x, copy2], dim=1))
         x = self.layer8(x)
         x = self.upsample4(x)
 
-        # Decoder stage 2 and restoration-parameter prediction.
+        # Decoder stage 2
         x = self.skip1(torch.cat([x, copy1], dim=1))
         x = self.layer9(x)
         x = self.patch_unembed(x)
@@ -680,12 +556,9 @@ class PGS2Net(nn.Module):
         return x
 
     def forward(self, x):
-        """Restore a haze-free image while preserving the original image size."""
         H, W = x.shape[2:]
         x = self.check_image_size(x)
         feat = self.forward_features(x)
-
-        # One-channel multiplicative map K and three-channel additive map B.
         K, B = torch.split(feat, (1, 3), dim=1)
         x = K * x - B + x
         x = x[:, :, :H, :W]
