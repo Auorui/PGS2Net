@@ -14,6 +14,12 @@ You can download the RSHD dataset on [Baidu Netdisk](https://pan.baidu.com/s/1mf
 
 You can download the downstream evaluation dataset on [Baidu Netdisk](https://pan.baidu.com/s/1BN7uLtRpbOaA103EWpHBPA?pwd=mjj3)
 
+The partially synthetic cloud images are placed under `data/cloud_512/`. To reproduce the cloud synthesis described in the paper, run the following command **from the repository root**:
+
+```bash
+python ./script/cloud_fusion.py
+```
+
 ## Model Training
 To train a model from scratch, use
 ```python
