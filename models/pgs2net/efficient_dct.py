@@ -1,12 +1,4 @@
-"""Efficient orthonormal 2-D DCT/IDCT implementation for PGS2Net inference.
-
-The transform matrices are generated lazily and cached by spatial size, device,
-and data type. This is intended for fixed-resolution deployment, where repeated
-inference reuses the same DCT bases and avoids reconstructing them every time.
-
-The implementation follows the orthonormal DCT-II convention used by
-``torch_dct.dct_2d(..., norm='ortho')``.
-
+"""
 DCT2D is numerically equivalent but not bit-exact to torch_dct, resulting in minimal
 differences in inference metrics. For precise reproduction of the paper's numerical results,
 the torch_dct path must be enforced. This switch does not involve parameters and the
