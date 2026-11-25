@@ -10,11 +10,9 @@ Install torch and torchvision first, then install pyzjr.
 
 ## Dataset
 
-You can download the RSHD dataset on [Baidu Netdisk]() 
+You can download the RSHD dataset on [Baidu Netdisk](https://pan.baidu.com/s/1mfpsgL1lf3EOOmN0ymlVfA?pwd=j3yb) 
 
-You can download the partially synthetic cloud test images on [Baidu Netdisk]()
-
-You can download the downstream evaluation dataset on [Baidu Netdisk]()
+You can download the downstream evaluation dataset on [Baidu Netdisk](https://pan.baidu.com/s/1BN7uLtRpbOaA103EWpHBPA?pwd=mjj3)
 
 ## Model Training
 To train a model from scratch, use
