@@ -60,7 +60,7 @@ pip install -r requirements.txt
 
 ## Dataset
 
-RSHD is built from 1,050 haze-free backgrounds of DIOR and LEVIR (three scene categories: aircraft, ship, oil tank). Cloud and haze textures are real semi-transparent RGBA patterns, randomly cropped/resized to 512×512, color-corrected, and alpha-composited in 1–3 layers with a random transparency gain, which yields structured and spatially non-uniform degradation instead of a uniform atmospheric model. Thin and thick subsets are split by haze density, each with 840 training and 210 test pairs.
+**RSHD** (Remote Sensing Heterogeneous-cloud Dataset) is built from 1,050 haze-free backgrounds of DIOR and LEVIR (three scene categories: aircraft, ship, oil tank). Cloud and haze textures are real semi-transparent RGBA patterns, randomly cropped/resized to 512×512, color-corrected, and alpha-composited in 1–3 layers with a random transparency gain, which yields structured and spatially non-uniform degradation instead of a uniform atmospheric model. Thin and thick subsets are split by haze density, each with 840 training and 210 test pairs.
 
 <div align="center">
 <img src="assets/rshd_samples.jpg" width="100%" alt="RSHD samples: clear / thin haze / thick haze">
